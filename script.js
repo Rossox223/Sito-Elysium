@@ -346,14 +346,16 @@ function editProductDetails(shopKey, index) {
     if (action === '1') {
         const newCount = prompt(`Nuova quantità per ${p.name}:`, p.count);
         if (newCount !== null && !isNaN(parseInt(newCount))) {
-            p.count = Math.max(0, parseInt(newCount));
+            shops[shopKey][index].count = Math.max(0, parseInt(newCount, 10));
             saveData();
+            render(); // Aggiorna subito l'interfaccia!
         }
     } else if (action === '2') {
         const newPrice = prompt(`Nuovo prezzo (in bronzini) per ${p.name}:`, p.price);
         if (newPrice !== null && !isNaN(parseInt(newPrice))) {
-            p.price = Math.max(0, parseInt(newPrice));
+            shops[shopKey][index].price = Math.max(0, parseInt(newPrice, 10));
             saveData();
+            render();
         }
     } else if (action === '3') {
         const currentReqStr = JSON.stringify(p.req);
@@ -365,8 +367,9 @@ function editProductDetails(shopKey, index) {
         if (newReqStr !== null) {
             try {
                 const parsedReq = JSON.parse(newReqStr);
-                p.req = parsedReq;
+                shops[shopKey][index].req = parsedReq;
                 saveData();
+                render();
                 alert("Ingredienti aggiornati con successo!");
             } catch (err) {
                 alert("Formato JSON non valido! Assicurati di usare le virgolette doppie per le chiavi.");
@@ -375,9 +378,10 @@ function editProductDetails(shopKey, index) {
     } else if (action === '4') {
         const newName = prompt(`Nuovo Nome:`, p.name);
         const newIcon = prompt(`Nuova Icona Emoji:`, p.icon);
-        if (newName) p.name = newName;
-        if (newIcon) p.icon = newIcon;
+        if (newName) shops[shopKey][index].name = newName;
+        if (newIcon) shops[shopKey][index].icon = newIcon;
         saveData();
+        render();
     }
 }
 

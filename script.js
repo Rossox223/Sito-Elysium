@@ -14,20 +14,8 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
 
-const ADMIN_PASSWORD_HASH = "81b67272714a84d41b53fa9760aa01828cb0f12a84fb754e6037a34612470aa1";
+const ADMIN_PASSWORD = "blazecucina123";
 let isAdmin = false;
-
-async function hashString(str) {
-    if (!window.crypto || !window.crypto.subtle) {
-        alert("ATTENZIONE: Il tuo browser richiede HTTPS o localhost per usare il Login con Hash!");
-        return null;
-    }
-    const encoder = new TextEncoder();
-    const data = encoder.encode(str);
-    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-}
 
 
 const defaultCategories = [
@@ -164,22 +152,17 @@ function saveData() {
     });
 }
 
-async function toggleAdmin() {
+function toggleAdmin() {
     if (!isAdmin) {
         const pass = prompt("Inserisci la password Admin:");
         if (pass !== null) {
-            const cleanedPass = pass.trim();
-            
-            // Debug: Se digiti "blazecucina123" la controlliamo
-            const inputHash = await hashString(cleanedPass);
-
-            if (inputHash === ADMIN_PASSWORD_HASH) {
+            if (pass.trim().toLowerCase() === ADMIN_PASSWORD.toLowerCase()) {
                 isAdmin = true;
                 document.body.classList.add('is-admin');
                 document.getElementById('admin-status').innerText = "👑 Modalità: Admin";
                 document.getElementById('login-btn').innerText = "🚪 Logout";
                 alert("Login effettuato come Admin!");
-            } else if (inputHash !== null) {
+            } else {
                 alert("Password errata!");
             }
         }

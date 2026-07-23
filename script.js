@@ -341,6 +341,25 @@ function sellProduct(shopKey, index) {
     }
 }
 
+function parseMathExpression(input, currentVal) {
+    if (input === null) return null;
+    let str = input.trim();
+    if (str === '') return null;
+    if (str.startsWith('+') || str.startsWith('-')) {
+        str = currentVal + str;
+    }
+
+    try {
+        const sanitized = str.replace(/[^0-9+\-*/().]/g, '');
+        if (!sanitized) return null;
+        
+        const result = new Function(`return ${sanitized}`)();
+        return isNaN(result) ? null : Math.max(0, Math.round(result));
+    } catch (e) {
+        return null;
+    }
+}
+
 function editProductDetails(shopKey, index) {
     const p = shops[shopKey][index];
 
@@ -355,10 +374,19 @@ function editProductDetails(shopKey, index) {
     );
 
     if (action === '1') {
-        const newCount = prompt(`Nuova quantità per ${p.name}:`, p.count);
-        if (newCount !== null && !isNaN(parseInt(newCount))) {
-            shops[shopKey][index].count = Math.max(0, parseInt(newCount, 10));
-            saveData();
+        const input = prompt(
+            `Nuova quantità per ${p.name} (attualmente: ${p.count}):\n\n` +
+            `💡 Puoi usare "+", "-", "*", "/" (es: "+10" o "5 * 4")`, 
+            p.count
+        );
+        if (input !== null) {
+            const newCount = parseMathExpression(input, p.count);
+            if (newCount !== null) {
+                shops[shopKey][index].count = newCount;
+                saveData();
+            } else {
+                alert("Operazione non valida!");
+            }
         }
     } else if (action === '2') {
         const newPrice = prompt(`Nuovo prezzo (in bronzini) per ${p.name}:`, p.price);
@@ -394,10 +422,23 @@ function editProductDetails(shopKey, index) {
 
 function addIngredientStock(catIdx, key) {
     const item = inventoryData[catIdx].items[key];
-    const amount = prompt(`Modifica scorta per ${item.name}:`, item.count);
-    if (amount !== null && !isNaN(parseInt(amount))) {
-        item.count = Math.max(0, parseInt(amount));
-        saveData();
+    const input = prompt(
+        `🛠️ Modifica scorta per ${item.name} (attualmente: ${item.count})\n\n` +
+        `💡 Puoi usare la calcolatrice integrata:\n` +
+        `• Scrivi "+50" per aggiungere 50 pezzi\n` +
+        `• Scrivi "-20" per toglierne 20\n` +
+        `• Oppure calcola: "1077 + 240 - 64"`, 
+        item.count
+    );
+    
+    if (input !== null) {
+        const newCount = parseMathExpression(input, item.count);
+        if (newCount !== null) {
+            item.count = newCount;
+            saveData();
+        } else {
+            alert("Operazione non valida! Inserisci un numero o un calcolo valido.");
+        }
     }
 }
 

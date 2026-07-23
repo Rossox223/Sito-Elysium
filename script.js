@@ -1,7 +1,4 @@
-// =========================================================================
-// 1. CONFIGURAZIONE FIREBASE
-// Sostituisci questo oggetto con quello copiato dalla Console di Firebase!
-// =========================================================================
+
 const firebaseConfig = {
   apiKey: "AIzaSyDPOE81FnekUd4SXTPh2ql7R9WRTTXiCoM",
   authDomain: "elysium-craft.firebaseapp.com",
@@ -12,15 +9,23 @@ const firebaseConfig = {
   appId: "1:245291764328:web:3b2c616b1bc927585209dd"
 };
 
-// Inizializza Firebase
+
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-// Password per abilitare i comandi da Admin
-const ADMIN_PASSWORD = "blazecucina123"; 
+
+const ADMIN_PASSWORD_HASH = "33139369be3c1622cb8380d0d80bb52554e262176dddb758e72ef75e3c155353";
 let isAdmin = false;
 
-// --- DATI DI DEFAULT (Usati solo al primo avvio in assoluto) ---
+async function hashString(str) {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(str);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+
 const defaultCategories = [
     {
         id: 'carne_pesce',
@@ -125,17 +130,14 @@ const defaultShops = {
     ]
 };
 
-// Variabili di stato globali
+
 let inventoryData = defaultCategories;
 let shops = defaultShops;
 let totalProfit = 0;
 let historyLog = [];
 
-// =========================================================================
-// 2. SINCRONIZZAZIONE REALTIME CON FIREBASE
-// =========================================================================
 
-// Ascolta i cambiamenti nel DB e aggiorna l'interfaccia in TEMPO REALE
+
 db.ref('elysium_data').on('value', (snapshot) => {
     const data = snapshot.val();
     if (data) {
@@ -144,13 +146,11 @@ db.ref('elysium_data').on('value', (snapshot) => {
         totalProfit = data.profit || 0;
         historyLog = data.history || [];
     } else {
-        // Se il DB è vuoto, carica i dati di default
         saveData();
     }
     render();
 });
 
-// Salva lo stato su Firebase
 function saveData() {
     db.ref('elysium_data').set({
         categories: inventoryData,
@@ -160,21 +160,20 @@ function saveData() {
     });
 }
 
-// =========================================================================
-// 3. LOGICA DI GESTIONE INTERFACCIA ED EVENTI
-// =========================================================================
-
-function toggleAdmin() {
+async function toggleAdmin() {
     if (!isAdmin) {
         const pass = prompt("Inserisci la password Admin:");
-        if (pass === ADMIN_PASSWORD) {
-            isAdmin = true;
-            document.body.classList.add('is-admin');
-            document.getElementById('admin-status').innerText = "👑 Modalità: Admin";
-            document.getElementById('login-btn').innerText = "🚪 Logout";
-            alert("Login effettuato come Admin!");
-        } else if (pass !== null) {
-            alert("Password errata!");
+        if (pass !== null) {
+            const inputHash = await hashString(pass);
+            if (inputHash === ADMIN_PASSWORD_HASH) {
+                isAdmin = true;
+                document.body.classList.add('is-admin');
+                document.getElementById('admin-status').innerText = "👑 Modalità: Admin";
+                document.getElementById('login-btn').innerText = "🚪 Logout";
+                alert("Login effettuato come Admin!");
+            } else {
+                alert("Password errata!");
+            }
         }
     } else {
         isAdmin = false;
@@ -218,7 +217,7 @@ function renderShopGrid(containerId, items, shopKey) {
             slot.oncontextmenu = (e) => {
                 e.preventDefault();
                 if (!isAdmin) return;
-                editShopStock(shopKey, i);
+                editProductDetails(shopKey, i);
             };
 
             slot.onmousemove = (e) => showTooltip(e, item);
@@ -340,11 +339,53 @@ function sellProduct(shopKey, index) {
     }
 }
 
-function editShopStock(shopKey, index) {
+function editProductDetails(shopKey, index) {
     const p = shops[shopKey][index];
-    const amount = prompt(`Modifica quantita disponibile per ${p.name}:`, p.count);
-    if (amount !== null && !isNaN(parseInt(amount))) {
-        p.count = Math.max(0, parseInt(amount));
+
+    const action = prompt(
+        `🛠️ MODIFICA PRODOTTO: ${p.name}\n\n` +
+        `Cosa vuoi modificare?\n` +
+        `1. Quantità disponibile (attualmente: ${p.count})\n` +
+        `2. Prezzo di vendita (attualmente: ${p.price}b)\n` +
+        `3. Ingredienti richiesti (attualmente: ${JSON.stringify(p.req)})\n` +
+        `4. Nome o Icona (attualmente: ${p.icon} ${p.name})\n\n` +
+        `Inserisci il numero della scelta (1-4):`
+    );
+
+    if (action === '1') {
+        const newCount = prompt(`Nuova quantità per ${p.name}:`, p.count);
+        if (newCount !== null && !isNaN(parseInt(newCount))) {
+            p.count = Math.max(0, parseInt(newCount));
+            saveData();
+        }
+    } else if (action === '2') {
+        const newPrice = prompt(`Nuovo prezzo (in bronzini) per ${p.name}:`, p.price);
+        if (newPrice !== null && !isNaN(parseInt(newPrice))) {
+            p.price = Math.max(0, parseInt(newPrice));
+            saveData();
+        }
+    } else if (action === '3') {
+        const currentReqStr = JSON.stringify(p.req);
+        const newReqStr = prompt(
+            `Modifica la mappa degli ingredienti richiesti in formato JSON.\n` +
+            `Esempio: {"mela":2,"zucchero":1}\n`, 
+            currentReqStr
+        );
+        if (newReqStr !== null) {
+            try {
+                const parsedReq = JSON.parse(newReqStr);
+                p.req = parsedReq;
+                saveData();
+                alert("Ingredienti aggiornati con successo!");
+            } catch (err) {
+                alert("Formato JSON non valido! Assicurati di usare le virgolette doppie per le chiavi.");
+            }
+        }
+    } else if (action === '4') {
+        const newName = prompt(`Nuovo Nome:`, p.name);
+        const newIcon = prompt(`Nuova Icona Emoji:`, p.icon);
+        if (newName) p.name = newName;
+        if (newIcon) p.icon = newIcon;
         saveData();
     }
 }

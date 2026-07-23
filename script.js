@@ -312,8 +312,16 @@ function hideTooltip() {
 
 function sellProduct(shopKey, index) {
     const p = shops[shopKey][index];
-    if (p.count > 0) {
-        p.count--;
+    let qtyToSubtract = 1;
+    if (p.units) {
+        const match = p.units.match(/(\d+)/);
+        if (match) {
+            qtyToSubtract = parseInt(match[1], 10);
+        }
+    }
+
+    if (p.count >= qtyToSubtract) {
+        p.count -= qtyToSubtract;
         totalProfit += p.price;
         
         const now = new Date();
@@ -322,10 +330,12 @@ function sellProduct(shopKey, index) {
 
         historyLog.unshift({
             id: Date.now(),
-            text: `[${dateStr} ${timeStr}] Venduto ${p.name} (+${p.price}b)`,
+            text: `[${dateStr} ${timeStr}] Venduto ${p.name} (${p.units || '1 unità'}) (+${p.price}b)`,
             price: p.price
         });
         saveData();
+    } else if (p.count > 0) {
+        alert(`Non ci sono abbastanza pezzi in stock! Ne servono ${qtyToSubtract}, ma ne rimangono solo ${p.count}.`);
     } else {
         alert("Prodotto esaurito nel Negozietto!");
     }

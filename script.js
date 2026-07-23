@@ -14,7 +14,7 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
 
-const ADMIN_PASSWORD_HASH = "33139369be3c1622cb8380d0d80bb52554e262176dddb758e72ef75e3c155353";
+const ADMIN_PASSWORD_HASH = "81b67272714a84d41b53fa9760aa01828cb0f12a84fb754e6037a34612470aa1";
 let isAdmin = false;
 
 async function hashString(str) {
@@ -164,7 +164,10 @@ async function toggleAdmin() {
     if (!isAdmin) {
         const pass = prompt("Inserisci la password Admin:");
         if (pass !== null) {
-            const inputHash = await hashString(pass);
+            // .trim() rimuove eventuali spazi bianchi all'inizio o alla fine
+            const cleanedPass = pass.trim(); 
+            const inputHash = await hashString(cleanedPass);
+
             if (inputHash === ADMIN_PASSWORD_HASH) {
                 isAdmin = true;
                 document.body.classList.add('is-admin');

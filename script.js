@@ -1,4 +1,3 @@
-
 const firebaseConfig = {
   apiKey: "AIzaSyDPOE81FnekUd4SXTPh2ql7R9WRTTXiCoM",
   authDomain: "elysium-craft.firebaseapp.com",
@@ -9,14 +8,11 @@ const firebaseConfig = {
   appId: "1:245291764328:web:3b2c616b1bc927585209dd"
 };
 
-
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-
 const ADMIN_PASSWORD = "blazecucina123";
 let isAdmin = false;
-
 
 const defaultCategories = [
     {
@@ -122,13 +118,11 @@ const defaultShops = {
     ]
 };
 
-
 let inventoryData = defaultCategories;
 let shops = defaultShops;
 let totalProfit = 0;
 let historyLog = [];
-
-
+let lastUpdated = null;
 
 db.ref('elysium_data').on('value', (snapshot) => {
     const data = snapshot.val();
@@ -137,6 +131,7 @@ db.ref('elysium_data').on('value', (snapshot) => {
         shops = data.shops || defaultShops;
         totalProfit = data.profit || 0;
         historyLog = data.history || [];
+        lastUpdated = data.lastUpdated || null;
     } else {
         saveData();
     }
@@ -144,11 +139,17 @@ db.ref('elysium_data').on('value', (snapshot) => {
 });
 
 function saveData() {
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    const timeStr = now.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    lastUpdated = `${dateStr} alle ${timeStr}`;
+
     db.ref('elysium_data').set({
         categories: inventoryData,
         shops: shops,
         profit: totalProfit,
-        history: historyLog
+        history: historyLog,
+        lastUpdated: lastUpdated
     });
 }
 
@@ -348,14 +349,12 @@ function editProductDetails(shopKey, index) {
         if (newCount !== null && !isNaN(parseInt(newCount))) {
             shops[shopKey][index].count = Math.max(0, parseInt(newCount, 10));
             saveData();
-            render(); // Aggiorna subito l'interfaccia!
         }
     } else if (action === '2') {
         const newPrice = prompt(`Nuovo prezzo (in bronzini) per ${p.name}:`, p.price);
         if (newPrice !== null && !isNaN(parseInt(newPrice))) {
             shops[shopKey][index].price = Math.max(0, parseInt(newPrice, 10));
             saveData();
-            render();
         }
     } else if (action === '3') {
         const currentReqStr = JSON.stringify(p.req);
@@ -369,7 +368,6 @@ function editProductDetails(shopKey, index) {
                 const parsedReq = JSON.parse(newReqStr);
                 shops[shopKey][index].req = parsedReq;
                 saveData();
-                render();
                 alert("Ingredienti aggiornati con successo!");
             } catch (err) {
                 alert("Formato JSON non valido! Assicurati di usare le virgolette doppie per le chiavi.");
@@ -381,7 +379,6 @@ function editProductDetails(shopKey, index) {
         if (newName) shops[shopKey][index].name = newName;
         if (newIcon) shops[shopKey][index].icon = newIcon;
         saveData();
-        render();
     }
 }
 
@@ -441,6 +438,13 @@ function render() {
     renderShopGrid('shop-3-grid', shops.shop3, 'shop3');
     renderInventory();
     
+    const lastUpdateEl = document.getElementById('last-update');
+    if (lastUpdateEl) {
+        lastUpdateEl.innerHTML = lastUpdated 
+            ? `🕒 Ultimo aggiornamento: <strong>${lastUpdated}</strong>` 
+            : `🕒 Ultimo aggiornamento: <em>Mai aggiornato</em>`;
+    }
+
     document.getElementById('total-profit').innerText = totalProfit;
     const logContainer = document.getElementById('history-log');
     

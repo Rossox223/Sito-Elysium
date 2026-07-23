@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Elysium Craft - Gestione Negozi & Scorte</title>
+    <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <header class="header">
+        <h1>Elysium Craft - Gestione Negozi & Scorte</h1>
+        <div class="admin-bar">
+            <span id="admin-status">👤 Modalità: Ospite (Sola Lettura)</span>
+            <button class="btn" id="login-btn" onclick="toggleAdmin()">🔑 Login Admin</button>
+        </div>
+    </header>
+
+    <div class="dashboard">
+        <div class="left-column">
+            
+            <div class="chest-container">
+                <div class="chest-title">🏪 Negozio 1: Affumicati & Succhi</div>
+                <div class="grid" id="shop-1-grid"></div>
+                <div class="help-text">🖱️ Click Sx = Vendi (-1) | 🖱️ Click Dx = Modifica Quantità</div>
+            </div>
+
+            <div class="chest-container">
+                <div class="chest-title">🏪 Negozio 2: Grigliati, Marmellate & Panini</div>
+                <div class="grid" id="shop-2-grid"></div>
+                <div class="help-text">🖱️ Click Sx = Vendi (-1) | 🖱️ Click Dx = Modifica Quantità</div>
+            </div>
+
+            <div class="chest-container">
+                <div class="chest-title">🏪 Negozio 3: Piatti Elaborati & Dolci</div>
+                <div class="grid" id="shop-3-grid"></div>
+                <div class="help-text">🖱️ Click Sx = Vendi (-1) | 🖱️ Click Dx = Modifica Quantità</div>
+            </div>
+
+            <div class="profit-card admin-only">
+                <h2>💰 Registro Profitti</h2>
+                <div>Totale Guadagnato: <strong id="total-profit" style="color: #55ff55;">0</strong> b</div>
+                <button class="btn" onclick="addCustomSale()">+ Vendita Manuale</button>
+            </div>
+
+            <div class="profit-card admin-only">
+                <h2>📜 Storico Vendite</h2>
+                <div class="history-list" id="history-log">
+                    <em>Nessuna vendita registrata.</em>
+                </div>
+                <button class="btn btn-danger" onclick="resetData()">Resetta Tutto</button>
+            </div>
+
+        </div>
+
+        <div class="right-column">
+            <div class="chest-container">
+                <div class="chest-title">🎒 Inventario Ingredienti</div>
+                <div id="inventory-categories"></div>
+                <div class="help-text" style="margin-top: 10px;">🖱️ Click = Modifica Scorta</div>
+            </div>
+        </div>
+
+    </div>
+
+    <div id="mc-tooltip"></div>
+
+    <script src="script.js"></script>
+</body>
+</html>

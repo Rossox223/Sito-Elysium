@@ -1,6 +1,26 @@
+// =========================================================================
+// 1. CONFIGURAZIONE FIREBASE
+// Sostituisci questo oggetto con quello copiato dalla Console di Firebase!
+// =========================================================================
+const firebaseConfig = {
+  apiKey: "AIzaSyDPOE81FnekUd4SXTPh2ql7R9WRTTXiCoM",
+  authDomain: "elysium-craft.firebaseapp.com",
+  databaseURL: "https://elysium-craft-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "elysium-craft",
+  storageBucket: "elysium-craft.firebasestorage.app",
+  messagingSenderId: "245291764328",
+  appId: "1:245291764328:web:3b2c616b1bc927585209dd"
+};
+
+// Inizializza Firebase
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+// Password per abilitare i comandi da Admin
 const ADMIN_PASSWORD = "blazecucina123"; 
 let isAdmin = false;
 
+// --- DATI DI DEFAULT (Usati solo al primo avvio in assoluto) ---
 const defaultCategories = [
     {
         id: 'carne_pesce',
@@ -89,9 +109,9 @@ const defaultShops = {
         { name: 'Patate Grigliate', icon: '🥔', count: 8, price: 5, units: '2 unità', nutrition: '+4% Grani', cost: '1b + carbonella', req: { patata: 2 } },
         { name: 'Pomodori Grigliati', icon: '🍅', count: 8, price: 5, units: '2 unità', nutrition: '+4% Vegetali', cost: '1b + carbonella', req: { pomodoro: 2 } },
         { name: 'Melenzane Grigliate', icon: '🍆', count: 8, price: 5, units: '2 unità', nutrition: '+4% Vegetali', cost: '1b + carbonella', req: { melenzana: 2 } },
-        { name: 'Panino Mela/Marmellata', icon: '🥪', count: 6, price: 5, units: '1 unità', nutrition: '+3.2% Grani, +3.2% Zuccheri', cost: '3.35b', req: { mela: 2, zucchero: 1, grano: 3 } },
-        { name: 'Panino Verdura', icon: '🥪', count: 6, price: 5, units: '1 unità', nutrition: '+3.2% Grani, +3.2% Vegetali', cost: '3.2b', req: { pomodoro: 2, grano: 3 }, note: 'Puoi usare Pomodori o Melenzane' },
-        { name: 'Panino Carne', icon: '🥪', count: 6, price: 5, units: '1 unità', nutrition: '+3.2% Grani, +3.2% Proteine', cost: '3.2b', req: { manzo: 2, grano: 3 } }
+        { name: 'Panino Mela/Marmellata', icon: '🥪', count: 6, price: 7, units: '1 unità', nutrition: '+3.2% Grani, +3.2% Zuccheri', cost: '3.35b', req: { mela: 2, zucchero: 1, grano: 3 } },
+        { name: 'Panino Verdura', icon: '🥪', count: 6, price: 7, units: '1 unità', nutrition: '+3.2% Grani, +3.2% Vegetali', cost: '3.2b', req: { pomodoro: 2, grano: 3 }, note: 'Puoi usare Pomodori o Melenzane' },
+        { name: 'Panino Carne', icon: '🥪', count: 6, price: 7, units: '1 unità', nutrition: '+3.2% Grani, +3.2% Proteine', cost: '3.2b', req: { manzo: 2, grano: 3 } }
     ],
     shop3: [
         { name: 'Sushi', icon: '🍣', count: 4, price: 14, units: '1 unità', nutrition: '+4.8% Grani, +4.8% Proteine, +4.8% Vegetali', cost: '7b', req: { alga: 1, pesce_palla: 1, riso: 3 } },
@@ -105,18 +125,44 @@ const defaultShops = {
     ]
 };
 
-let inventoryData = JSON.parse(localStorage.getItem('ec_v8_categories')) || defaultCategories;
-let shops = JSON.parse(localStorage.getItem('ec_v8_shops')) || defaultShops;
-let totalProfit = JSON.parse(localStorage.getItem('ec_v8_profit')) || 0;
-let historyLog = JSON.parse(localStorage.getItem('ec_v8_history')) || [];
+// Variabili di stato globali
+let inventoryData = defaultCategories;
+let shops = defaultShops;
+let totalProfit = 0;
+let historyLog = [];
 
-function saveData() {
-    localStorage.setItem('ec_v8_categories', JSON.stringify(inventoryData));
-    localStorage.setItem('ec_v8_shops', JSON.stringify(shops));
-    localStorage.setItem('ec_v8_profit', JSON.stringify(totalProfit));
-    localStorage.setItem('ec_v8_history', JSON.stringify(historyLog));
+// =========================================================================
+// 2. SINCRONIZZAZIONE REALTIME CON FIREBASE
+// =========================================================================
+
+// Ascolta i cambiamenti nel DB e aggiorna l'interfaccia in TEMPO REALE
+db.ref('elysium_data').on('value', (snapshot) => {
+    const data = snapshot.val();
+    if (data) {
+        inventoryData = data.categories || defaultCategories;
+        shops = data.shops || defaultShops;
+        totalProfit = data.profit || 0;
+        historyLog = data.history || [];
+    } else {
+        // Se il DB è vuoto, carica i dati di default
+        saveData();
+    }
     render();
+});
+
+// Salva lo stato su Firebase
+function saveData() {
+    db.ref('elysium_data').set({
+        categories: inventoryData,
+        shops: shops,
+        profit: totalProfit,
+        history: historyLog
+    });
 }
+
+// =========================================================================
+// 3. LOGICA DI GESTIONE INTERFACCIA ED EVENTI
+// =========================================================================
 
 function toggleAdmin() {
     if (!isAdmin) {
@@ -141,7 +187,7 @@ function toggleAdmin() {
 
 function findIngredient(key) {
     for (let cat of inventoryData) {
-        if (cat.items[key]) return cat.items[key];
+        if (cat.items && cat.items[key]) return cat.items[key];
     }
     return null;
 }
@@ -154,7 +200,7 @@ function renderShopGrid(containerId, items, shopKey) {
         const slot = document.createElement('div');
         slot.className = 'slot';
 
-        if (items[i]) {
+        if (items && items[i]) {
             const item = items[i];
             slot.innerHTML = `
                 <span class="slot-icon">${item.icon}</span>
@@ -196,35 +242,37 @@ function renderInventory() {
         grid.className = 'grid';
         grid.style.gridTemplateColumns = 'repeat(6, 60px)';
 
-        Object.keys(cat.items).forEach(key => {
-            const item = cat.items[key];
-            const slot = document.createElement('div');
-            slot.className = 'slot';
+        if (cat.items) {
+            Object.keys(cat.items).forEach(key => {
+                const item = cat.items[key];
+                const slot = document.createElement('div');
+                slot.className = 'slot';
 
-            if (item.count <= 3) {
-                slot.classList.add('danger');
-            } else if (item.count <= 10) {
-                slot.classList.add('warning');
-            }
-
-            slot.innerHTML = `
-                <span class="slot-icon">${item.icon}</span>
-                <span class="slot-count">${item.count}</span>
-            `;
-            
-            slot.onclick = () => {
-                if (!isAdmin) {
-                    alert("Devi accedere come Admin per modificare le scorte!");
-                    return;
+                if (item.count <= 3) {
+                    slot.classList.add('danger');
+                } else if (item.count <= 10) {
+                    slot.classList.add('warning');
                 }
-                addIngredientStock(catIdx, key);
-            };
 
-            slot.onmousemove = (e) => showSimpleTooltip(e, item.name, `Scorta: ${item.count}`);
-            slot.onmouseleave = hideTooltip;
+                slot.innerHTML = `
+                    <span class="slot-icon">${item.icon}</span>
+                    <span class="slot-count">${item.count}</span>
+                `;
+                
+                slot.onclick = () => {
+                    if (!isAdmin) {
+                        alert("Devi accedere come Admin per modificare le scorte!");
+                        return;
+                    }
+                    addIngredientStock(catIdx, key);
+                };
 
-            grid.appendChild(slot);
-        });
+                slot.onmousemove = (e) => showSimpleTooltip(e, item.name, `Scorta: ${item.count}`);
+                slot.onmouseleave = hideTooltip;
+
+                grid.appendChild(slot);
+            });
+        }
 
         container.appendChild(grid);
     });
@@ -342,8 +390,7 @@ function addCustomSale() {
 
 function resetData() {
     if (!isAdmin) return;
-    if (confirm("Vuoi azzerare tutte le scorte e ripristinare i valori iniziali?")) {
-        localStorage.clear();
+    if (confirm("Vuoi azzerare tutte le scorte e ripristinare i valori iniziali su Firebase?")) {
         inventoryData = defaultCategories;
         shops = defaultShops;
         totalProfit = 0;
@@ -361,7 +408,7 @@ function render() {
     document.getElementById('total-profit').innerText = totalProfit;
     const logContainer = document.getElementById('history-log');
     
-    if (historyLog.length === 0) {
+    if (!historyLog || historyLog.length === 0) {
         logContainer.innerHTML = '<em>Nessuna vendita registrata.</em>';
     } else {
         logContainer.innerHTML = historyLog.map(item => `
@@ -372,5 +419,3 @@ function render() {
         `).join('');
     }
 }
-
-render();

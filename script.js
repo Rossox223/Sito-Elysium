@@ -18,6 +18,10 @@ const ADMIN_PASSWORD_HASH = "81b67272714a84d41b53fa9760aa01828cb0f12a84fb754e603
 let isAdmin = false;
 
 async function hashString(str) {
+    if (!window.crypto || !window.crypto.subtle) {
+        alert("ATTENZIONE: Il tuo browser richiede HTTPS o localhost per usare il Login con Hash!");
+        return null;
+    }
     const encoder = new TextEncoder();
     const data = encoder.encode(str);
     const hashBuffer = await crypto.subtle.digest('SHA-256', data);
@@ -164,8 +168,9 @@ async function toggleAdmin() {
     if (!isAdmin) {
         const pass = prompt("Inserisci la password Admin:");
         if (pass !== null) {
-            // .trim() rimuove eventuali spazi bianchi all'inizio o alla fine
-            const cleanedPass = pass.trim(); 
+            const cleanedPass = pass.trim();
+            
+            // Debug: Se digiti "blazecucina123" la controlliamo
             const inputHash = await hashString(cleanedPass);
 
             if (inputHash === ADMIN_PASSWORD_HASH) {
@@ -174,7 +179,7 @@ async function toggleAdmin() {
                 document.getElementById('admin-status').innerText = "👑 Modalità: Admin";
                 document.getElementById('login-btn').innerText = "🚪 Logout";
                 alert("Login effettuato come Admin!");
-            } else {
+            } else if (inputHash !== null) {
                 alert("Password errata!");
             }
         }
